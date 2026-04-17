@@ -1,0 +1,11 @@
+alpaca-py
+
+pandas
+numpy
+statsmodels
+scipy
+
+python-dotenv
+pytz
+lxml
+html5lib
