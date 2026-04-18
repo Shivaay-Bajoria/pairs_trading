@@ -68,4 +68,3 @@ if __name__ == "__main__":
         print("\nResults securely saved to cointegrated_pairs.csv")
     else:
         print("Increase the threshold, no cointegrated pairs found")
-
