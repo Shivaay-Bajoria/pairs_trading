@@ -6,6 +6,11 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
 from liv_arb_math import LiveArbitrageMath
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame
+from datetime import datetime, timedelta, timezone
+from alpaca.data.enums import DataFeed
 
 #Initializing the keys
 load_dotenv()
@@ -25,7 +30,7 @@ except Exception as e:
     print(f"Failed to connect to Alpaca API. Please check your credentials. Error: {e}")
     exit(1)
 
-MAX_CONCURRENT_TRADES = 10
+MAX_CONCURRENT_TRADES = 15
 ALLOCATION_PER_TRADE = TOTAL_CAPITAL / MAX_CONCURRENT_TRADES
 
 Z_SCORE_ENTRY = 2.0
@@ -82,8 +87,15 @@ def execute_trade(pair, action, price_a=0, price_b=0, live_beta=0):
         return
 
     # Calculate exact share sizing for Beta-Neutral exposure
-    shares_a = round((ALLOCATION_PER_TRADE / (price_a + (live_beta * price_b))), 2)
-    shares_b = round((shares_a * live_beta), 2)
+    # Alpaca strictly prohibits fractional short selling. 
+    # We must cast the shares to whole integers using int()
+    shares_a = int(ALLOCATION_PER_TRADE / (price_a + (live_beta * price_b)))
+    shares_b = int(shares_a * live_beta)
+    
+    # Failsafe: If a stock is too expensive (e.g., Berkshire Hathaway) and $10k isn't enough to buy 1 share
+    if shares_a < 1 or shares_b < 1:
+        print(f"[{stock_a}/{stock_b}] Allocation too small for 1 whole share. Skipping.")
+        return
     
     print(f"\n[ENTRY] Routing Orders for {stock_a}/{stock_b}: {shares_a} shares of {stock_a} | {shares_b} shares of {stock_b}")
 
